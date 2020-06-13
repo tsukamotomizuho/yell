@@ -66,7 +66,7 @@ $posts_list = json_encode( $posts , JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS 
 	</head>
 	<body>
 		<h1>エールをおくれ！</h1>
-		<form action="" method="post">
+		<form action="insert.php" method="post">
 			yell: <input type="text" name="message">
 			user: <input type="text" name="user">
 			<input type="submit" value="エール！">
