@@ -17,76 +17,69 @@ function checkToken(){
 	}
 }
 
-
-
 function h($s){
 	return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 }
 
-if($_SERVER['REQUEST_METHOD']=='POST' && 
-   isset($_POST['message'] )&&
-	isset($_POST['user'])){
-	
-	checkToken();
-	   
-	$message = trim($_POST['message']);
-	$user = trim($_POST['user']);
-	
-   if($message !== ''){
-		
-	   	$message = str_replace("\t", '' , $message);
-	   
-		$user =  ($user == '')? 'ななしさん' : $user;
-		
-		$postedAt = date('Y-m-d H:i:s');
-		
-		$newData = $message . "\t" . $user . "\t" . $postedAt. "\n";
 
-		$fp = fopen($dataFile, 'a');
-		fwrite($fp, $newData);
-		fclose($fp);
-	   
-   }
-}else{
-	setToken();
+//$posts_list = json_encode( $posts , JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+
+
+//2. DB接続
+try {
+  $pdo = new PDO('mysql:dbname=yell;charset=utf8;host=localhost','root','');
+} catch (PDOException $e) {
+  exit('DbConnectError:'.$e->getyell());
 }
 
-$posts = file($dataFile, FILE_IGNORE_NEW_LINES);
 
-$posts = array_reverse($posts);
+//３．SQLを作成(ｓｔｍｌの中で)
+$stmt = $pdo->prepare("SELECT * FROM yell_table ORDER BY id DESC");
+$status = $stmt->execute();
+//実行後、エラーだったらfalseが返る
 
-$posts_list = json_encode( $posts , JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+
+//４．エラー表示
+$view ='';
+
+if($status==false){
+  $error = $stmt->errorInfo();
+  exit("QueryError:".$error[2]);//エラー表示
+  
+}else{//正常
+	while($r = $stmt->fetch(PDO::FETCH_ASSOC)){
+		$view .= '<p>';
+		$view .= $r["create_date"]."　".$r["user"]."(".$r["id"].")";
+		$view .= '<br>';
+		$view .= '　';
+		$view .= $r["yell"];
+		$view .= '</a>';
+		$view .= '</p>';
+	}
+}
+
 
 ?>
 <!DOCTYPE HTML>
-<html>
+<html lang="ja">
 	<head>
 	<meta charset="utf-8">
 		<title>エールをおくれ！</title>
+		<link href="css/bootstrap.min.css" rel="stylesheet">
 	</head>
 	<body>
 		<h1>エールをおくれ！</h1>
 		<form action="insert.php" method="post">
-			yell: <input type="text" name="message">
+			yell: <input type="text" name="yell">
 			user: <input type="text" name="user">
 			<input type="submit" value="エール！">
-			<input type="hidden" name="token" value="<?php echo h($_SESSION['token']); ?>">
 		</form>
-		<h2>エール一覧(<?php echo count($posts); ?>件)</h2>
-		<ul>
-			<?php if (count($posts)) :?>
-				<?php foreach ($posts as $post) : ?>
-				<?php list($message, $user, $postedAt) = explode("\t",$post)
-				?>
-					<li><?php echo h($message); ?> (<?php echo h($user); ?>) - <?php echo h($postedAt); ?></li>
-				<?php endforeach; ?>
-			<?php else :?>
-			<li>エールはありません</li>
-			<?php endif; ?>
-		</ul>
+		<h2>エール一覧</h2>
+		<div>
+			<div><?=$view?></div>
+		</div>
 	</body>
 </html>
 <script>
-	let posts = <?php echo $posts_list; ?>;
-	console.log(posts);
+
 </script>
